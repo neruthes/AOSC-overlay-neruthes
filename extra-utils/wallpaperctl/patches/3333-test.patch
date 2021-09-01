@@ -1,11 +1,11 @@
---- wallpaperctl	2021-09-01 14:21:47.173112826 +0000
-+++ wallpaperctl	2020-10-24 03:33:08.276687258 +0000
-@@ -6,8 +6,6 @@
+--- wallpaperctl	2020-10-24 03:33:08.276687258 +0000
++++ wallpaperctl.alt	2021-09-01 14:21:47.173112826 +0000
+@@ -6,6 +6,8 @@
  ## Licensed under GNU GPLv2.
  #######################################################
  
--echo "This script has been patched by Ciel-Layman overlay 'Neruthes'."
--
++echo "This script has been patched by Ciel-Layman overlay 'Neruthes'."
++
  ## Init
  SUBCOMMAND=$1
  ARG0=$2
