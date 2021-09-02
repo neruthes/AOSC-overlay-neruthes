@@ -1,0 +1,602 @@
+diff -ur a/Documentation/git-bisect-lk2009.txt b/Documentation/git-bisect-lk2009.txt
+--- a/Documentation/git-bisect-lk2009.txt	2021-03-08 20:36:01.000000000 +0000
++++ b/Documentation/git-bisect-lk2009.txt	2021-09-02 16:02:25.000000000 +0000
+@@ -767,16 +767,16 @@
+ bad commit and yet not be neither one of its ancestor nor one of its
+ descendants.
+ 
+-For example, there can be a "main" branch, and a "dev" branch that was
+-forked of the main branch at a commit named "D" like this:
++For example, there can be a "master" branch, and a "dev" branch that was
++forked of the master branch at a commit named "D" like this:
+ 
+ -------------
+-A-B-C-D-E-F-G  <--main
++A-B-C-D-E-F-G  <--master
+        \
+         H-I-J  <--dev
+ -------------
+ 
+-The commit "D" is called a "merge base" for branch "main" and "dev"
++The commit "D" is called a "merge base" for branch "master" and "dev"
+ because it's the best common ancestor for these branches for a merge.
+ 
+ Now let's suppose that commit J is bad and commit G is good and that
+@@ -794,7 +794,7 @@
+ -------------
+ 
+ But what happens if the first bad commit is "B" and if it has been
+-fixed in the "main" branch by commit "F"?
++fixed in the "master" branch by commit "F"?
+ 
+ The result of such a bisection would be that we would find that H is
+ the first bad commit, when in fact it's B. So that would be wrong!
+diff -ur a/Documentation/git-cvsserver.txt b/Documentation/git-cvsserver.txt
+--- a/Documentation/git-cvsserver.txt	2021-03-08 20:36:01.000000000 +0000
++++ b/Documentation/git-cvsserver.txt	2021-09-02 16:01:29.000000000 +0000
+@@ -376,7 +376,7 @@
+ even if you temporarily make another branch sticky with
+ cvs update -r.  Alternatively, the -r argument can indicate
+ some other branch to actually checkout, even though the module
+-is still the "main" branch.  Tradeoffs (as currently
++is still the "master" branch.  Tradeoffs (as currently
+ implemented): Each new "module" creates a new database on disk with
+ a history for the given module, and after the database is created,
+ operations against that main branch are fast.  Or alternatively,
+diff -ur a/fmt-merge-msg.c b/fmt-merge-msg.c
+--- a/fmt-merge-msg.c	2021-03-08 20:36:01.000000000 +0000
++++ b/fmt-merge-msg.c	2021-09-02 16:00:27.000000000 +0000
+@@ -627,7 +627,7 @@
+ 	struct merge_parents merge_parents;
+ 
+ 	if (!suppress_dest_pattern_seen) {
+-		string_list_append(&suppress_dest_patterns, "main");
++		string_list_append(&suppress_dest_patterns, "master");
+ 		string_list_append(&suppress_dest_patterns, "master");
+ 	}
+ 
+diff -ur a/git-cvsserver.perl b/git-cvsserver.perl
+--- a/git-cvsserver.perl	2021-03-08 20:36:01.000000000 +0000
++++ b/git-cvsserver.perl	2021-09-02 16:00:39.000000000 +0000
+@@ -4589,7 +4589,7 @@
+     #
+     # git-cvsserver CVS-compatible special numbering schemes:
+     #   - Currently git-cvsserver only tries to be identical to CVS for
+-    #     simple "1.x" numbers on the "main" branch (as identified
++    #     simple "1.x" numbers on the "master" branch (as identified
+     #     by the module name that was originally cvs checkout'ed).
+     #   - The database only stores the "x" part, for historical reasons.
+     #     But most of the rest of the cvsserver preserves
+diff -ur a/git-p4.py b/git-p4.py
+--- a/git-p4.py	2021-03-08 20:36:01.000000000 +0000
++++ b/git-p4.py	2021-09-02 16:00:44.000000000 +0000
+@@ -3511,7 +3511,7 @@
+         branches = p4BranchesInGit(self.importIntoRemotes)
+         for branch in branches.keys():
+             if branch == "master":
+-                branch = "main"
++                branch = "master"
+             else:
+                 branch = branch[len(self.projectName):]
+             self.knownBranches[branch] = branch
+@@ -3528,7 +3528,7 @@
+                              and ('keepRepoPath' in d['options']))
+ 
+     def gitRefForBranch(self, branch):
+-        if branch == "main":
++        if branch == "master":
+             return self.refPrefix + "master"
+ 
+         if len(branch) <= 0:
+diff -ur a/git.c b/git.c
+--- a/git.c	2021-03-08 20:36:01.000000000 +0000
++++ b/git.c	2021-09-02 16:01:06.000000000 +0000
+@@ -78,7 +78,7 @@
+ 
+ 		if (match_token(spec, len, "builtins"))
+ 			list_builtins(&list, 0);
+-		else if (match_token(spec, len, "main"))
++		else if (match_token(spec, len, "master"))
+ 			list_all_main_cmds(&list);
+ 		else if (match_token(spec, len, "others"))
+ 			list_all_other_cmds(&list);
+diff -ur a/t/helper/test-ref-store.c b/t/helper/test-ref-store.c
+--- a/t/helper/test-ref-store.c	2021-03-08 20:36:01.000000000 +0000
++++ b/t/helper/test-ref-store.c	2021-09-02 16:06:28.000000000 +0000
+@@ -23,8 +23,8 @@
+ 
+ 	if (!argv[0]) {
+ 		die("ref store required");
+-	} else if (!strcmp(argv[0], "main")) {
+-		*refs = get_main_ref_store(the_repository);
++	} else if (!strcmp(argv[0], "master")) {
++		*refs = get_master_ref_store(the_repository);
+ 	} else if (skip_prefix(argv[0], "submodule:", &gitdir)) {
+ 		struct strbuf sb = STRBUF_INIT;
+ 		int ret;
+@@ -43,8 +43,8 @@
+ 			struct worktree *wt = *p;
+ 
+ 			if (!wt->id) {
+-				/* special case for main worktree */
+-				if (!strcmp(gitdir, "main"))
++				/* special case for master worktree */
++				if (!strcmp(gitdir, "master"))
+ 					break;
+ 			} else if (!strcmp(gitdir, wt->id))
+ 				break;
+diff -ur a/t/t3201-branch-contains.sh b/t/t3201-branch-contains.sh
+--- a/t/t3201-branch-contains.sh	2021-03-08 20:36:01.000000000 +0000
++++ b/t/t3201-branch-contains.sh	2021-09-02 16:05:14.000000000 +0000
+@@ -10,52 +10,52 @@
+ 	git add file &&
+ 	test_tick &&
+ 	git commit -m initial &&
+-	git branch -M main &&
++	git branch -M master &&
+ 	git branch side &&
+ 
+ 	echo 1 >file &&
+ 	test_tick &&
+-	git commit -a -m "second on main" &&
++	git commit -a -m "second on master" &&
+ 
+ 	git checkout side &&
+ 	echo 1 >file &&
+ 	test_tick &&
+ 	git commit -a -m "second on side" &&
+ 
+-	git merge main
++	git merge master
+ 
+ '
+ 
+-test_expect_success 'branch --contains=main' '
++test_expect_success 'branch --contains=master' '
+ 
+-	git branch --contains=main >actual &&
++	git branch --contains=master >actual &&
+ 	{
+-		echo "  main" && echo "* side"
++		echo "  master" && echo "* side"
+ 	} >expect &&
+ 	test_cmp expect actual
+ 
+ '
+ 
+-test_expect_success 'branch --contains main' '
++test_expect_success 'branch --contains master' '
+ 
+-	git branch --contains main >actual &&
++	git branch --contains master >actual &&
+ 	{
+-		echo "  main" && echo "* side"
++		echo "  master" && echo "* side"
+ 	} >expect &&
+ 	test_cmp expect actual
+ 
+ '
+ 
+-test_expect_success 'branch --no-contains=main' '
++test_expect_success 'branch --no-contains=master' '
+ 
+-	git branch --no-contains=main >actual &&
++	git branch --no-contains=master >actual &&
+ 	test_must_be_empty actual
+ 
+ '
+ 
+-test_expect_success 'branch --no-contains main' '
++test_expect_success 'branch --no-contains master' '
+ 
+-	git branch --no-contains main >actual &&
++	git branch --no-contains master >actual &&
+ 	test_must_be_empty actual
+ 
+ '
+@@ -74,7 +74,7 @@
+ 
+ 	git branch --no-contains=side >actual &&
+ 	{
+-		echo "  main"
++		echo "  master"
+ 	} >expect &&
+ 	test_cmp expect actual
+ 
+@@ -82,9 +82,9 @@
+ 
+ test_expect_success 'branch --contains with pattern implies --list' '
+ 
+-	git branch --contains=main main >actual &&
++	git branch --contains=master master >actual &&
+ 	{
+-		echo "  main"
++		echo "  master"
+ 	} >expect &&
+ 	test_cmp expect actual
+ 
+@@ -92,7 +92,7 @@
+ 
+ test_expect_success 'branch --no-contains with pattern implies --list' '
+ 
+-	git branch --no-contains=main main >actual &&
++	git branch --no-contains=master master >actual &&
+ 	test_must_be_empty actual
+ 
+ '
+@@ -101,7 +101,7 @@
+ 
+ 	git branch --merged >actual &&
+ 	{
+-		echo "  main" &&
++		echo "  master" &&
+ 		echo "* side"
+ 	} >expect &&
+ 	test_cmp expect actual
+@@ -110,9 +110,9 @@
+ 
+ test_expect_success 'branch --merged with pattern implies --list' '
+ 
+-	git branch --merged=side main >actual &&
++	git branch --merged=side master >actual &&
+ 	{
+-		echo "  main"
++		echo "  master"
+ 	} >expect &&
+ 	test_cmp expect actual
+ 
+@@ -125,18 +125,18 @@
+ 
+ '
+ 
+-test_expect_success 'main: branch --merged' '
++test_expect_success 'master: branch --merged' '
+ 
+-	git checkout main &&
++	git checkout master &&
+ 	git branch --merged >actual &&
+ 	{
+-		echo "* main"
++		echo "* master"
+ 	} >expect &&
+ 	test_cmp expect actual
+ 
+ '
+ 
+-test_expect_success 'main: branch --no-merged' '
++test_expect_success 'master: branch --no-merged' '
+ 
+ 	git branch --no-merged >actual &&
+ 	{
+@@ -148,22 +148,22 @@
+ 
+ test_expect_success 'branch --no-merged with pattern implies --list' '
+ 
+-	git branch --no-merged=main main >actual &&
++	git branch --no-merged=master master >actual &&
+ 	test_must_be_empty actual
+ 
+ '
+ 
+ test_expect_success 'implicit --list conflicts with modification options' '
+ 
+-	test_must_fail git branch --contains=main -d &&
+-	test_must_fail git branch --contains=main -m foo &&
+-	test_must_fail git branch --no-contains=main -d &&
+-	test_must_fail git branch --no-contains=main -m foo
++	test_must_fail git branch --contains=master -d &&
++	test_must_fail git branch --contains=master -m foo &&
++	test_must_fail git branch --no-contains=master -d &&
++	test_must_fail git branch --no-contains=master -m foo
+ 
+ '
+ 
+ test_expect_success 'Assert that --contains only works on commits, not trees & blobs' '
+-	test_must_fail git branch --contains main^{tree} &&
++	test_must_fail git branch --contains master^{tree} &&
+ 	blob=$(git hash-object -w --stdin <<-\EOF
+ 	Some blob
+ 	EOF
+@@ -173,11 +173,11 @@
+ '
+ 
+ test_expect_success 'multiple branch --contains' '
+-	git checkout -b side2 main &&
++	git checkout -b side2 master &&
+ 	>feature &&
+ 	git add feature &&
+ 	git commit -m "add feature" &&
+-	git checkout -b next main &&
++	git checkout -b next master &&
+ 	git merge side &&
+ 	git branch --contains side --contains side2 >actual &&
+ 	cat >expect <<-\EOF &&
+@@ -189,9 +189,9 @@
+ '
+ 
+ test_expect_success 'multiple branch --merged' '
+-	git branch --merged next --merged main >actual &&
++	git branch --merged next --merged master >actual &&
+ 	cat >expect <<-\EOF &&
+-	  main
++	  master
+ 	* next
+ 	  side
+ 	EOF
+@@ -201,13 +201,13 @@
+ test_expect_success 'multiple branch --no-contains' '
+ 	git branch --no-contains side --no-contains side2 >actual &&
+ 	cat >expect <<-\EOF &&
+-	  main
++	  master
+ 	EOF
+ 	test_cmp expect actual
+ '
+ 
+ test_expect_success 'multiple branch --no-merged' '
+-	git branch --no-merged next --no-merged main >actual &&
++	git branch --no-merged next --no-merged master >actual &&
+ 	cat >expect <<-\EOF &&
+ 	  side2
+ 	EOF
+@@ -215,7 +215,7 @@
+ '
+ 
+ test_expect_success 'branch --contains combined with --no-contains' '
+-	git checkout -b seen main &&
++	git checkout -b seen master &&
+ 	git merge side &&
+ 	git merge side2 &&
+ 	git branch --contains side --no-contains side2 >actual &&
+@@ -240,26 +240,26 @@
+ # that the latter walk does not mess up our flag to see if it was
+ # merged).
+ #
+-# Here "topic" tracks "main" with one extra commit, and "zzz" points to the
++# Here "topic" tracks "master" with one extra commit, and "zzz" points to the
+ # same tip as main The name "zzz" must come alphabetically after "topic"
+ # as we process them in that order.
+ test_expect_success 'branch --merged with --verbose' '
+-	git branch --track topic main &&
++	git branch --track topic master &&
+ 	git branch zzz topic &&
+ 	git checkout topic &&
+ 	test_commit foo &&
+ 	git branch --merged topic >actual &&
+ 	cat >expect <<-\EOF &&
+-	  main
++	  master
+ 	* topic
+ 	  zzz
+ 	EOF
+ 	test_cmp expect actual &&
+ 	git branch --verbose --merged topic >actual &&
+ 	cat >expect <<-EOF &&
+-	  main  $(git rev-parse --short main) second on main
++	  master  $(git rev-parse --short master) second on master
+ 	* topic $(git rev-parse --short topic ) [ahead 1] foo
+-	  zzz   $(git rev-parse --short zzz   ) second on main
++	  zzz   $(git rev-parse --short zzz   ) second on master
+ 	EOF
+ 	test_i18ncmp expect actual
+ '
+diff -ur a/t/t5703-upload-pack-ref-in-want.sh b/t/t5703-upload-pack-ref-in-want.sh
+--- a/t/t5703-upload-pack-ref-in-want.sh	2021-03-08 20:36:01.000000000 +0000
++++ b/t/t5703-upload-pack-ref-in-want.sh	2021-09-02 16:06:10.000000000 +0000
+@@ -38,13 +38,13 @@
+ 
+ # c(o/foo) d(o/bar)
+ #        \ /
+-#         b   e(baz)  f(main)
++#         b   e(baz)  f(master)
+ #          \__  |  __/
+ #             \ | /
+ #               a
+ test_expect_success 'setup repository' '
+ 	test_commit a &&
+-	git branch -M main &&
++	git branch -M master &&
+ 	git checkout -b o/foo &&
+ 	test_commit b &&
+ 	test_commit c &&
+@@ -52,7 +52,7 @@
+ 	test_commit d &&
+ 	git checkout -b baz a &&
+ 	test_commit e &&
+-	git checkout main &&
++	git checkout master &&
+ 	test_commit f
+ '
+ 
+@@ -89,7 +89,7 @@
+ test_expect_success 'basic want-ref' '
+ 	oid=$(git rev-parse f) &&
+ 	cat >expected_refs <<-EOF &&
+-	$oid refs/heads/main
++	$oid refs/heads/master
+ 	EOF
+ 	git rev-parse f >expected_commits &&
+ 
+@@ -98,7 +98,7 @@
+ 	$(write_command fetch)
+ 	0001
+ 	no-progress
+-	want-ref refs/heads/main
++	want-ref refs/heads/master
+ 	have $oid
+ 	done
+ 	0000
+@@ -136,7 +136,7 @@
+ test_expect_success 'mix want and want-ref' '
+ 	oid=$(git rev-parse f) &&
+ 	cat >expected_refs <<-EOF &&
+-	$oid refs/heads/main
++	$oid refs/heads/master
+ 	EOF
+ 	git rev-parse e f >expected_commits &&
+ 
+@@ -144,7 +144,7 @@
+ 	$(write_command fetch)
+ 	0001
+ 	no-progress
+-	want-ref refs/heads/main
++	want-ref refs/heads/master
+ 	want $(git rev-parse e)
+ 	have $(git rev-parse a)
+ 	done
+@@ -183,7 +183,7 @@
+ # $REPO
+ # c(o/foo) d(o/bar)
+ #        \ /
+-#         b   e(baz)  f(main)
++#         b   e(baz)  f(master)
+ #          \__  |  __/
+ #             \ | /
+ #               a
+@@ -194,10 +194,10 @@
+ #		.
+ #		.
+ #		|
+-#		a(main)
++#		a(master)
+ test_expect_success 'setup repos for fetching with ref-in-want tests' '
+ 	(
+-		git init -b main "$REPO" &&
++		git init -b master "$REPO" &&
+ 		cd "$REPO" &&
+ 		test_commit a &&
+ 
+@@ -210,7 +210,7 @@
+ 		test_commit_bulk --id=s 33 &&
+ 
+ 		# Add novel commits to upstream
+-		git checkout main &&
++		git checkout master &&
+ 		cd "$REPO" &&
+ 		git checkout -b o/foo &&
+ 		test_commit b &&
+@@ -219,7 +219,7 @@
+ 		test_commit d &&
+ 		git checkout -b baz a &&
+ 		test_commit e &&
+-		git checkout main &&
++		git checkout master &&
+ 		test_commit f
+ 	) &&
+ 	git -C "$REPO" config uploadpack.allowRefInWant true &&
+@@ -246,12 +246,12 @@
+ 
+ 	rm -rf local &&
+ 	cp -r "$LOCAL_PRISTINE" local &&
+-	GIT_TRACE_PACKET="$(pwd)/log" git -C local fetch origin main baz &&
++	GIT_TRACE_PACKET="$(pwd)/log" git -C local fetch origin master baz &&
+ 
+-	git -C "$REPO" rev-parse "main" "baz" >expected &&
+-	git -C local rev-parse refs/remotes/origin/main refs/remotes/origin/baz >actual &&
++	git -C "$REPO" rev-parse "master" "baz" >expected &&
++	git -C local rev-parse refs/remotes/origin/master refs/remotes/origin/baz >actual &&
+ 	test_cmp expected actual &&
+-	grep "want-ref refs/heads/main" log &&
++	grep "want-ref refs/heads/master" log &&
+ 	grep "want-ref refs/heads/baz" log
+ '
+ 
+@@ -262,13 +262,13 @@
+ 	cp -r "$LOCAL_PRISTINE" local &&
+ 	oid=$(git -C "$REPO" rev-parse b) &&
+ 	GIT_TRACE_PACKET="$(pwd)/log" git -C local fetch origin \
+-		main "$oid":refs/heads/actual &&
++		master "$oid":refs/heads/actual &&
+ 
+-	git -C "$REPO" rev-parse "main" "b" >expected &&
+-	git -C local rev-parse refs/remotes/origin/main refs/heads/actual >actual &&
++	git -C "$REPO" rev-parse "master" "b" >expected &&
++	git -C local rev-parse refs/remotes/origin/master refs/heads/actual >actual &&
+ 	test_cmp expected actual &&
+ 	grep "want $oid" log &&
+-	grep "want-ref refs/heads/main" log
++	grep "want-ref refs/heads/master" log
+ '
+ 
+ test_expect_success 'fetching with wildcard that does not match any refs' '
+@@ -302,7 +302,7 @@
+ 
+ test_expect_success 'setup repos for change-while-negotiating test' '
+ 	(
+-		git init -b main "$REPO" &&
++		git init -b master "$REPO" &&
+ 		cd "$REPO" &&
+ 		>.git/git-daemon-export-ok &&
+ 		test_commit m1 &&
+@@ -317,7 +317,7 @@
+ 		test_commit_bulk --id=s 33 &&
+ 
+ 		# Add novel commits to upstream
+-		git checkout main &&
++		git checkout master &&
+ 		cd "$REPO" &&
+ 		test_commit m2 &&
+ 		test_commit m3 &&
+@@ -343,7 +343,7 @@
+ 	git -C "$REPO" config uploadpack.allowRefInWant false &&
+ 	rm -rf local &&
+ 	cp -r "$LOCAL_PRISTINE" local &&
+-	inconsistency main $(test_oid numeric) &&
++	inconsistency master $(test_oid numeric) &&
+ 	test_must_fail git -C local fetch 2>err &&
+ 	test_i18ngrep "fatal: remote error: upload-pack: not our ref" err
+ '
+@@ -352,11 +352,11 @@
+ 	git -C "$REPO" config uploadpack.allowRefInWant true &&
+ 	rm -rf local &&
+ 	cp -r "$LOCAL_PRISTINE" local &&
+-	inconsistency main $(test_oid numeric) &&
++	inconsistency master $(test_oid numeric) &&
+ 	git -C local fetch &&
+ 
+-	git -C "$REPO" rev-parse --verify main >expected &&
+-	git -C local rev-parse --verify refs/remotes/origin/main >actual &&
++	git -C "$REPO" rev-parse --verify master >expected &&
++	git -C local rev-parse --verify refs/remotes/origin/master >actual &&
+ 	test_cmp expected actual
+ '
+ 
+@@ -364,11 +364,11 @@
+ 	git -C "$REPO" config uploadpack.allowRefInWant false &&
+ 	rm -rf local &&
+ 	cp -r "$LOCAL_PRISTINE" local &&
+-	inconsistency main "main^" &&
++	inconsistency master "master^" &&
+ 	git -C local fetch &&
+ 
+-	git -C "$REPO" rev-parse --verify "main^" >expected &&
+-	git -C local rev-parse --verify refs/remotes/origin/main >actual &&
++	git -C "$REPO" rev-parse --verify "master^" >expected &&
++	git -C local rev-parse --verify refs/remotes/origin/master >actual &&
+ 	test_cmp expected actual
+ '
+ 
+@@ -376,11 +376,11 @@
+ 	git -C "$REPO" config uploadpack.allowRefInWant true &&
+ 	rm -rf local &&
+ 	cp -r "$LOCAL_PRISTINE" local &&
+-	inconsistency main "main^" &&
++	inconsistency master "master^" &&
+ 	git -C local fetch &&
+ 
+-	git -C "$REPO" rev-parse --verify "main" >expected &&
+-	git -C local rev-parse --verify refs/remotes/origin/main >actual &&
++	git -C "$REPO" rev-parse --verify "master" >expected &&
++	git -C local rev-parse --verify refs/remotes/origin/master >actual &&
+ 	test_cmp expected actual
+ '
+ 
+@@ -388,7 +388,7 @@
+ 	git -C "$REPO" config uploadpack.allowRefInWant true &&
+ 	rm -rf local &&
+ 	cp -r "$LOCAL_PRISTINE" local &&
+-	echo "s/main/rain/" >"$HTTPD_ROOT_PATH/one-time-perl" &&
++	echo "s/master/rain/" >"$HTTPD_ROOT_PATH/one-time-perl" &&
+ 	test_must_fail git -C local fetch 2>err &&
+ 
+ 	test_i18ngrep "fatal: remote error: unknown ref refs/heads/rain" err
